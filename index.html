@@ -2,8 +2,18 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>5E寶可夢訓練中心</title>
+    <!-- 1. 鎖定螢幕縮放，並適配全螢幕 (viewport-fit=cover) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- 2. iOS 專屬 Web App 設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="5E寶可夢訓練">
+    
+    <!-- 3. iOS 桌面圖示 (使用 PokeAPI 提供的官方皮卡丘圖片) -->
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png">
+
+    <title>5E寶可夢班級訓練中心</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -23,10 +33,17 @@
                 linear-gradient(rgba(42, 117, 187, 0.1) 2px, transparent 2px),
                 linear-gradient(90deg, rgba(42, 117, 187, 0.1) 2px, transparent 2px);
             background-size: 40px 40px;
+            
+            /* 4. 禁止長按選取文字、禁止呼叫選單，讓它更像原生 APP */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
         
         .navbar {
-            background-color: var(--poke-red); padding: 15px;
+            background-color: var(--poke-red); 
+            /* 5. 適配 iOS 瀏海與狀態列，確保全螢幕時不會被遮擋 */
+            padding: max(15px, env(safe-area-inset-top)) 15px 15px 15px;
             box-shadow: 0 4px 15px rgba(238, 21, 21, 0.4);
             border-bottom: 6px solid #B71C1C; position: relative; z-index: 10;
         }
@@ -35,6 +52,8 @@
             padding: 10px 25px; margin: 0 10px; border-radius: 30px;
             cursor: pointer; font-size: 18px; font-weight: 900;
             transition: 0.2s; font-family: inherit;
+            /* 避免點擊時出現藍色底色 */
+            -webkit-tap-highlight-color: transparent; 
         }
         .nav-btn.active, .nav-btn:hover {
             background-color: var(--poke-yellow); color: var(--text-dark);
@@ -87,7 +106,7 @@
         @keyframes bounceIn { 0% { transform: scale(0) translateY(-40px) rotate(-180deg); opacity: 0; } 60% { transform: scale(1.2) translateY(0) rotate(10deg); opacity: 1; } 100% { transform: scale(1) translateY(0) rotate(0); opacity: 1; } }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
         
-        .add-btn { background-color: var(--poke-blue); color: var(--poke-yellow); border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 15px; font-family: inherit; box-shadow: 0 4px 0px #1A4D7C; transition: 0.1s; width: 100%; }
+        .add-btn { background-color: var(--poke-blue); color: var(--poke-yellow); border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 15px; font-family: inherit; box-shadow: 0 4px 0px #1A4D7C; transition: 0.1s; width: 100%; -webkit-tap-highlight-color: transparent; }
         .add-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0px 0px #1A4D7C; }
         .add-btn:disabled { background-color: #95a5a6; color: #ecf0f1; box-shadow: 0 4px 0px #7f8c8d; cursor: not-allowed; }
 
@@ -131,7 +150,7 @@
         <button class="nav-btn" onclick="switchTab('leaderboard', this)">🏆 5E聯盟殿堂排行</button>
     </div>
 
-    <!-- 系統錯誤提示 (取代 alert) -->
+    <!-- 系統錯誤提示 -->
     <div id="system-error" class="error-msg"></div>
 
     <div id="dashboard" class="page active">
@@ -159,7 +178,7 @@
         <div class="modal-content">
             <div class="gift-icon">🎁</div>
             <h2 id="gift-message" style="color: var(--poke-red);">等級提升！</h2>
-            <p style="font-size: 19px; font-weight: bold; color: #555;">請大師發放實體獎勵道具！</p>
+            <p style="font-size: 19px; font-weight: bold; color: #555;">請陳老師發放獎勵道具！</p>
             <button class="add-btn" onclick="closeModal()" style="margin-top: 25px; font-size: 18px; padding: 15px;">確認收服！重置精靈球</button>
         </div>
     </div>
@@ -179,7 +198,7 @@
         let students = [];
         const pokeballHtml = `<div class="pokeball-wrap"></div>`;
 
-        // 音效設定 (更新為穩定可用的寶可夢音效連結)
+        // 音效設定
         const sfxAdd = new Audio('https://www.myinstants.com/media/sounds/pokemon-a-button.mp3');
         const sfxLevelUp = new Audio('https://www.myinstants.com/media/sounds/pokemon-level-up.mp3');
 
@@ -215,7 +234,7 @@
                 renderDashboard();
             } catch (error) {
                 console.error("載入失敗:", error);
-                document.getElementById('loading-text').innerText = "⚠️ 無法連線至資料庫，請檢查 GAS 部署權限是否設為「所有人」。";
+                document.getElementById('loading-text').innerText = "⚠️ 無法連線至資料庫，請檢查網路或是 GAS 部署設定。";
                 document.getElementById('loading-text').style.color = "var(--poke-red)";
             }
         }
@@ -252,7 +271,6 @@
             btn.innerText = "儲存中 📡";
 
             try {
-                // 使用 POST 將更新請求傳送給 GAS
                 const response = await fetch(`${GAS_URL}?action=addBall&id=${studentId}`, { method: 'POST' });
                 const result = await response.json();
 
@@ -278,7 +296,6 @@
                         setTimeout(async () => {
                             showGiftModal(student);
                             
-                            // 呼叫重置 API
                             await fetch(`${GAS_URL}?action=resetBalls&id=${studentId}`, { method: 'POST' });
                             student.balls = 0; 
                             renderDashboard(); 
