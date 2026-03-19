@@ -8,7 +8,7 @@
     <!-- 2. iOS 專屬 Web App 設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="5E寶可夢訓練">
+    <meta name="apple-mobile-web-app-title" content="寶可夢訓練">
     
     <!-- 3. iOS 桌面圖示 (使用 PokeAPI 提供的官方皮卡丘圖片) -->
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png">
@@ -106,9 +106,14 @@
         @keyframes bounceIn { 0% { transform: scale(0) translateY(-40px) rotate(-180deg); opacity: 0; } 60% { transform: scale(1.2) translateY(0) rotate(10deg); opacity: 1; } 100% { transform: scale(1) translateY(0) rotate(0); opacity: 1; } }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
         
-        .add-btn { background-color: var(--poke-blue); color: var(--poke-yellow); border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 15px; font-family: inherit; box-shadow: 0 4px 0px #1A4D7C; transition: 0.1s; width: 100%; -webkit-tap-highlight-color: transparent; }
+        .btn-group { display: flex; gap: 8px; width: 100%; }
+        .add-btn { flex: 3; background-color: var(--poke-blue); color: var(--poke-yellow); border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 15px; font-family: inherit; box-shadow: 0 4px 0px #1A4D7C; transition: 0.1s; -webkit-tap-highlight-color: transparent; }
         .add-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0px 0px #1A4D7C; }
         .add-btn:disabled { background-color: #95a5a6; color: #ecf0f1; box-shadow: 0 4px 0px #7f8c8d; cursor: not-allowed; }
+
+        .remove-btn { flex: 1; background-color: #E53935; color: white; border: none; padding: 10px 0; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 15px; font-family: inherit; box-shadow: 0 4px 0px #B71C1C; transition: 0.1s; -webkit-tap-highlight-color: transparent; }
+        .remove-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0px 0px #B71C1C; }
+        .remove-btn:disabled { background-color: #e0e0e0; color: #9e9e9e; box-shadow: 0 4px 0px #bdbdbd; cursor: not-allowed; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 40px; border-radius: 30px; border: 8px solid var(--poke-yellow); text-align: center; animation: popUp 0.5s ease-out; max-width: 400px; }
@@ -117,7 +122,12 @@
         @keyframes tada { 0% { transform: scale(1); } 10%, 20% { transform: scale(0.9) rotate(-3deg); } 30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); } 40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); } 100% { transform: scale(1) rotate(0); } }
 
         .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin-top: 80px; height: 350px; }
-        .rank-box { display: flex; flex-direction: column; align-items: center; width: 140px; border-top-left-radius: 20px; border-top-right-radius: 20px; color: white; font-weight: 900; padding-top: 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.15); position: relative; }
+        
+        @keyframes podiumRise {
+            from { transform: translateY(150px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .rank-box { display: flex; flex-direction: column; align-items: center; width: 140px; border-top-left-radius: 20px; border-top-right-radius: 20px; color: white; font-weight: 900; padding-top: 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.15); position: relative; animation: podiumRise 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
         .rank-1 { background: linear-gradient(135deg, var(--poke-yellow), #F59E0B); height: 260px; border: 3px solid white; border-bottom: none;} 
         .rank-2 { background: linear-gradient(135deg, #9CA3AF, #6B7280); height: 190px; } 
         .rank-3 { background: linear-gradient(135deg, #B45309, #92400E); height: 140px; } 
@@ -193,7 +203,7 @@
         // ==========================================
         // ⚠️ 老師請注意：把下面這行引號內的網址換成你的 GAS 部署網址 ⚠️
         // ==========================================
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzoimXgptrXtpWS3yAoCZJePE14TASjJLDRrZhNM4IEKu1-PPVSYvCfdWgQvFn_bRUIbQ/exec"; 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwfMZ7lpHSG7fLhdQedYoOVBBWGtzhOlGqiZX0-yjk1rBtwCEcI62z1cz2JVVsAgEyR7Q/exec"; 
 
         let students = [];
         const pokeballHtml = `<div class="pokeball-wrap"></div>`;
@@ -256,18 +266,35 @@
                     <img src="${avatarUrl}" alt="Avatar" class="avatar-img">
                     <div class="trainer-name">${student.name}</div>
                     <div class="balls-container" id="balls-${student.id}">${ballsHtml}</div>
-                    <button class="add-btn" id="btn-${student.id}" onclick="addBall(${student.id})">+ 1 精靈球</button>
+                    <div class="btn-group">
+                        <button class="add-btn" id="btn-${student.id}" onclick="addBall(${student.id})">+ 1 精靈球</button>
+                        <button class="remove-btn" id="btn-rm-${student.id}" onclick="removeBall(${student.id})">- 1</button>
+                    </div>
                     <div style="font-size: 13px; color: #888; margin-top: 15px; font-weight: bold;">總收服數: <span id="total-${student.id}">${student.totalScore}</span></div>
                 `;
                 grid.appendChild(card);
             });
         }
 
+        function renderBallsHelper(studentId, ballsCount) {
+            const ballsContainer = document.getElementById(`balls-${studentId}`);
+            if (!ballsContainer) return;
+            ballsContainer.innerHTML = ''; 
+            for(let i=0; i < ballsCount; i++) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = `<div class="pokeball-wrap" style="animation-delay: ${i * 0.1}s"></div>`;
+                ballsContainer.appendChild(tempDiv.firstChild);
+            }
+        }
+
         async function addBall(studentId) {
+            sfxLevelUp.load(); // 提早解鎖 iOS 音效權限
             const student = students.find(s => s.id === studentId);
             const btn = document.getElementById(`btn-${studentId}`);
+            const btnRm = document.getElementById(`btn-rm-${studentId}`);
             
             btn.disabled = true;
+            if(btnRm) btnRm.disabled = true;
             btn.innerText = "儲存中 📡";
 
             try {
@@ -281,18 +308,15 @@
                     sfxAdd.currentTime = 0; sfxAdd.play().catch(e => {});
 
                     document.getElementById(`total-${studentId}`).innerText = student.totalScore;
-
-                    const ballsContainer = document.getElementById(`balls-${studentId}`);
-                    ballsContainer.innerHTML = ''; 
-                    for(let i=0; i < student.balls; i++) {
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = `<div class="pokeball-wrap" style="animation-delay: ${i * 0.1}s"></div>`;
-                        ballsContainer.appendChild(tempDiv.firstChild);
-                    }
+                    renderBallsHelper(studentId, student.balls);
 
                     document.getElementById('dialogue-text').innerText = `「做得好，${student.name}！繼續保持這個氣勢！」`;
 
                     if (student.balls >= 5) {
+                        // 立刻播放升級音效，避免被瀏覽器延遲阻擋
+                        sfxLevelUp.currentTime = 0; 
+                        sfxLevelUp.play().catch(e => console.log(e));
+
                         setTimeout(async () => {
                             showGiftModal(student);
                             
@@ -311,12 +335,45 @@
                 showError("⚠️ 連線伺服器失敗，請檢查網路狀態後再試！");
             } finally {
                 btn.disabled = false;
+                if(btnRm) btnRm.disabled = false;
                 btn.innerText = "+ 1 精靈球";
             }
         }
 
+        async function removeBall(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (student.balls <= 0 && student.totalScore <= 0) return; // 避免分數變成負數
+
+            const btn = document.getElementById(`btn-${studentId}`);
+            const btnRm = document.getElementById(`btn-rm-${studentId}`);
+            
+            if(btn) btn.disabled = true;
+            btnRm.disabled = true;
+            btnRm.innerText = "⏳";
+
+            try {
+                const response = await fetch(`${GAS_URL}?action=removeBall&id=${studentId}`, { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    student.balls = result.balls;
+                    student.totalScore = result.totalScore;
+
+                    document.getElementById(`total-${studentId}`).innerText = student.totalScore;
+                    renderBallsHelper(studentId, student.balls);
+                    document.getElementById('dialogue-text').innerText = `「哎呀，${student.name}，訓練時要多加專注喔！」`;
+                }
+            } catch (error) {
+                console.error("更新失敗:", error);
+                showError("⚠️ 連線伺服器失敗，請檢查網路狀態後再試！");
+            } finally {
+                if(btn) btn.disabled = false;
+                btnRm.disabled = false;
+                btnRm.innerText = "- 1";
+            }
+        }
+
         function showGiftModal(student) {
-            sfxLevelUp.currentTime = 0; sfxLevelUp.play().catch(e => {});
             document.getElementById('gift-message').innerText = `✨ 太棒了！${student.name} 集滿 5 顆精靈球！ ✨`;
             document.getElementById('gift-modal').style.display = 'flex';
         }
@@ -340,6 +397,7 @@
 
                 const bar = document.createElement('div');
                 bar.className = `rank-box ${rankClass}`;
+                bar.style.animationDelay = `${index * 0.2}s`; // 依照名次加入動畫延遲，產生依序升起的特效
                 bar.innerHTML = `
                     <img src="${avatarUrl}" class="rank-avatar" alt="Avatar">
                     <div>${student.name}</div>
