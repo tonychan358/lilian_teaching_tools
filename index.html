@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>陳老師的教育百寶箱</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Nunito (圓潤字體) & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Nunito"', '"Noto Sans TC"', 'sans-serif'],
+                    },
+                    colors: {
+                        bgFun: '#F0F9FF', // 活潑的淺藍背景
+                        cardWhite: '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F0F9FF;
+            /* 小學風格的活潑圓點背景 */
+            background-image: radial-gradient(#bae6fd 3px, transparent 3px);
+            background-size: 30px 30px;
+            background-attachment: fixed;
+            color: #334155;
+        }
+        
+        /* 童趣風格的 3D 立體卡片 */
+        .tool-card {
+            border: 3px solid #cbd5e1;
+            box-shadow: 4px 6px 0px #cbd5e1;
+            /* 加上一個 Q 彈的動畫曲線 */
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px) rotate(-1deg);
+            box-shadow: 6px 10px 0px #94a3b8;
+            border-color: #94a3b8;
+        }
+
+        /* 活潑的按鈕 */
+        .action-btn {
+            border: 2px solid #cbd5e1;
+            box-shadow: 2px 3px 0px #cbd5e1;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background-color: white;
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 3px 5px 0px #94a3b8;
+            border-color: #94a3b8;
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans flex flex-col">
+
+    <!-- 頂部導航列 -->
+    <header class="w-full px-6 py-4 md:px-10 md:py-5 flex justify-between items-center sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b-4 border-sky-200 shadow-sm">
+        <h1 class="text-2xl md:text-3xl font-black text-slate-800 tracking-wider flex items-center gap-2">
+            <span class="text-4xl">🌟</span> 陳老師<span class="font-bold text-sky-500 ml-1 text-xl md:text-2xl">教育AI工具箱</span>
+        </h1>
+        
+        <div class="flex items-center gap-3">
+            <button class="hidden md:flex px-5 py-2.5 rounded-2xl border-2 border-slate-200 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-sm transition-all transform hover:scale-105 shadow-[2px_2px_0px_#cbd5e1]">
+                陳老師 | 教育百寶箱
+            </button>
+            <button class="w-11 h-11 rounded-full border-2 border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center transition-all shadow-[2px_2px_0px_#cbd5e1] hover:scale-105">
+                <!-- 簡單的深色模式切換圖示示意 -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要內容區 (卡片網格) -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+        
+        <!-- 載入中 / 錯誤提示 -->
+        <div id="loading" class="text-center py-20 flex flex-col items-center justify-center min-h-[40vh]">
+            <div id="loading-spinner" class="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-sky-400 mb-6"></div>
+            <p id="loading-text" class="text-sky-600 font-bold text-xl tracking-wide">正在準備魔法工具箱...</p>
+        </div>
+
+        <!-- 卡片容器 -->
+        <div id="tools-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 hidden">
+            <!-- 卡片將由 JavaScript 動態生成於此 -->
+        </div>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="text-center py-8 text-slate-400 font-medium text-sm border-t-2 border-slate-200 bg-white mt-auto">
+        &copy; 陳老師. 熱愛教學、創新學習.
+    </footer>
+
+    <!-- JavaScript 邏輯：從 Google Sheet 讀取資料 -->
+    <script>        
+        // 🚨 將這裡替換為你的 Google Sheet CSV 網址！ 🚨
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrblQxvKEZlK2tB3G772D6njOUW7V_RzqLbUxwRgS2I1E4R4EwHdnicHOYiRtbH7wFUgA63FRsw1X9/pub?output=csv'; 
+
+        // 顯示錯誤訊息
+        function showError() {
+            const loadingDiv = document.getElementById('loading');
+            loadingDiv.innerHTML = `
+                <div class="text-rose-400 mb-4 text-6xl drop-shadow-sm transform hover:scale-110 transition-transform">☁️❌</div>
+                <p class="text-rose-500 font-black text-2xl tracking-wide">未能連接雲端資料庫</p>
+                <p class="text-slate-500 mt-3 font-medium">請確認 Google Sheet 網址已正確填寫並發布到網路。</p>
+            `;
+        }
+
+        // 簡單的 CSV 解析器 (處理包含逗號的字串)
+        function parseCSV(str) {
+            const arr = [];
+            let quote = false;  // 是否在引號內
+            let row = 0, col = 0, c = 0;
+            for (; c < str.length; c++) {
+                let cc = str[c], nc = str[c+1];
+                arr[row] = arr[row] || [];
+                arr[row][col] = arr[row][col] || '';
+                if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; continue; }
+                if (cc == '"') { quote = !quote; continue; }
+                if (cc == ',' && !quote) { ++col; continue; }
+                if (cc == '\r' && nc == '\n' && !quote) { ++row; col = 0; ++c; continue; }
+                if (cc == '\n' && !quote) { ++row; col = 0; continue; }
+                if (cc == '\r' && !quote) { ++row; col = 0; continue; }
+                arr[row][col] += cc;
+            }
+            return arr;
+        }
+
+        // 將 CSV 陣列轉為物件陣列
+        function csvToJson(csvArray) {
+            if (!csvArray || csvArray.length < 2) return [];
+            const headers = csvArray[0].map(h => h.trim());
+            const result = [];
+            for (let i = 1; i < csvArray.length; i++) {
+                if (csvArray[i].length === 1 && csvArray[i][0] === '') continue; // 跳過空行
+                const obj = {};
+                for (let j = 0; j < headers.length; j++) {
+                    obj[headers[j]] = csvArray[i][j] ? csvArray[i][j].trim() : '';
+                }
+                result.push(obj);
+            }
+            return result;
+        }
+
+        // 渲染卡片到畫面上
+        function renderCards(data) {
+            const container = document.getElementById('tools-container');
+            container.innerHTML = ''; // 清空內容
+
+            // 🍬 活潑的糖果色系主題與預設圖示
+            const themes = [
+                { color: 'bg-pink-100 text-pink-500 border-pink-200', icon: '🎨' },
+                { color: 'bg-sky-100 text-sky-500 border-sky-200', icon: '🚀' },
+                { color: 'bg-emerald-100 text-emerald-500 border-emerald-200', icon: '🍀' },
+                { color: 'bg-amber-100 text-amber-500 border-amber-200', icon: '💡' },
+                { color: 'bg-violet-100 text-violet-500 border-violet-200', icon: '✨' }
+            ];
+
+            data.forEach((item, index) => {
+                // 若沒有標題，則跳過
+                if(!item.Title) return;
+
+                const theme = themes[index % themes.length];
+                const card = document.createElement('div');
+                card.className = 'tool-card bg-white rounded-3xl p-6 md:p-8 flex flex-col h-full relative overflow-hidden group z-10';
+
+                // 按鈕 HTML 生成
+                let buttonsHtml = '';
+                if (item.Btn1Text) {
+                    buttonsHtml += `<a href="${item.Btn1Link || '#'}" target="_blank" class="action-btn rounded-xl px-5 py-2.5 text-sm font-bold text-slate-700 flex items-center shrink-0 relative z-10 hover:text-sky-600">
+                        ${item.Btn1Text}
+                    </a>`;
+                }
+                if (item.Btn2Text) {
+                    buttonsHtml += `<a href="${item.Btn2Link || '#'}" target="_blank" class="action-btn rounded-xl px-5 py-2.5 text-sm font-bold text-slate-700 flex items-center shrink-0 relative z-10 hover:text-sky-600">
+                        ${item.Btn2Text}
+                    </a>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex flex-col mb-4 relative z-10">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-4 ${theme.color} border-2 shadow-sm transform group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
+                            ${theme.icon}
+                        </div>
+                        <h2 class="text-xl font-black text-slate-800 leading-snug">
+                            ${item.Title}
+                        </h2>
+                    </div>
+                    <p class="text-slate-600 mb-8 flex-grow text-sm leading-relaxed font-medium relative z-10">${item.Description || ''}</p>
+                    <div class="flex flex-wrap gap-3 mt-auto relative z-10">
+                        ${buttonsHtml}
+                    </div>
+                    <!-- 裝飾用小圓圈 -->
+                    <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-slate-50 rounded-full opacity-60 z-0 group-hover:scale-[2] transition-transform duration-500"></div>
+                `;
+                container.appendChild(card);
+            });
+
+            // 隱藏載入中，顯示網格
+            document.getElementById('loading').classList.add('hidden');
+            container.classList.remove('hidden');
+        }
+
+        // 初始化載入資料
+        async function init() {
+            if (GOOGLE_SHEET_CSV_URL && GOOGLE_SHEET_CSV_URL !== '') {
+                try {
+                    const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const csvText = await response.text();
+                    
+                    // 檢查是否回傳了 HTML (代表網址錯誤，不是 CSV)
+                    if(csvText.trim().startsWith('<!DOCTYPE html>')) {
+                         throw new Error('Retrieved HTML instead of CSV. Check URL format.');
+                    }
+
+                    const csvArray = parseCSV(csvText);
+                    const jsonData = csvToJson(csvArray);
+                    
+                    if(jsonData.length === 0) {
+                        showError();
+                    } else {
+                        renderCards(jsonData);
+                    }
+
+                } catch (error) {
+                    console.error("讀取 Google Sheet 失敗:", error);
+                    showError();
+                }
+            } else {
+                // 如果沒有設定網址，直接顯示錯誤
+                showError();
+            }
+        }
+
+        // 執行初始化
+        window.onload = init;
+    </script>
+</body>
+</html>
