@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>為什麼月亮總是看著我們？</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a; /* 深太空背景 */
+            color: white;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', '微軟正黑體', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* 太空背景星星 */
+        .stars {
+            background: transparent url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><circle cx="10" cy="10" r="1" fill="white"/><circle cx="150" cy="50" r="1.5" fill="white" opacity="0.8"/><circle cx="80" cy="120" r="1" fill="white" opacity="0.5"/><circle cx="180" cy="180" r="2" fill="white" opacity="0.9"/></svg>') repeat;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+        }
+
+        .simulation-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 0 auto;
+            border-radius: 50%;
+        }
+
+        /* 軌道線 */
+        .orbit-path {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 260px;
+            height: 260px;
+            margin-top: -130px;
+            margin-left: -130px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        /* 空間十字座標線 (幫助對齊) */
+        .grid-line-h, .grid-line-v {
+            position: absolute;
+            top: 50%; left: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1;
+        }
+        .grid-line-h { width: 320px; height: 1px; margin-left: -160px; }
+        .grid-line-v { height: 320px; width: 1px; margin-top: -160px; }
+
+        /* 地球 */
+        .earth {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80px;
+            height: 80px;
+            margin-top: -40px;
+            margin-left: -40px;
+            background: radial-gradient(circle at 30% 30%, #4ade80, #3b82f6);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), inset -10px -10px 20px rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            z-index: 10;
+        }
+
+        /* 視線提示 (從地球看向月亮) */
+        .sight-line {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 130px;
+            height: 4px;
+            background: repeating-linear-gradient(to right, rgba(255,255,0,0.8) 0, rgba(255,255,0,0.8) 10px, transparent 10px, transparent 20px);
+            transform-origin: left center;
+            margin-top: -2px;
+            z-index: 5;
+            transition: opacity 0.3s;
+            opacity: 0; /* 預設隱藏 */
+        }
+
+        /* 月亮本體 */
+        .moon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 60px;
+            height: 60px;
+            margin-top: -30px;
+            margin-left: -30px;
+            border-radius: 50%;
+            background: linear-gradient(to right, #fde047 50%, #475569 50%);
+            box-shadow: 0 0 10px rgba(253, 224, 71, 0.3);
+            z-index: 20;
+        }
+
+        /* 控制按鈕特效 */
+        .btn-active {
+            transform: translateY(4px);
+            border-bottom-width: 0px !important;
+            background-color: #f59e0b !important;
+            color: white !important;
+        }
+
+        /* 客製化滑桿 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #fde047;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(253, 224, 71, 0.8);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 10px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 5px;
+            border: 1px solid #475569;
+        }
+
+        /* 玻璃擬態面板 */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative pb-6 overflow-x-hidden">
+    <div class="stars"></div>
+
+    <header class="text-center p-3 mt-2 z-10 max-w-3xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-bold text-yellow-300 mb-3 drop-shadow-md">
+            月亮為什麼看著我們？ 🌝
+        </h1>
+        <div class="bg-blue-900/50 p-4 rounded-xl border border-blue-400/30 text-left md:text-center shadow-inner mb-2">
+            <p class="text-base md:text-lg text-blue-100 leading-relaxed">
+                你有沒有發現，每次抬頭看月亮，上面的圖案好像永遠都是同一個樣子？<br class="hidden md:block">
+                就像月亮一直用同一張「臉」看著我們地球一樣！這到底是為什麼呢？<br class="hidden md:block">
+                其實，這跟月亮自己會<span class="text-yellow-300 font-bold">「旋轉」</span>有關喔！一起做個小實驗找出答案吧！
+            </p>
+        </div>
+        <p class="text-sm md:text-base text-yellow-200 mt-2 font-bold animate-pulse">
+            👇 動手玩玩看！操作下方的「太空控制台」來觀察 👇
+        </p>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center p-2 z-10 w-full max-w-4xl mx-auto">
+        
+        <!-- 上半部：動畫與解說 (大螢幕並排，小螢幕上下) -->
+        <div class="flex flex-col md:flex-row items-center justify-center w-full gap-6 mb-6">
+            <!-- 動畫展示區 -->
+            <div class="simulation-container shrink-0">
+                <div class="grid-line-h"></div>
+                <div class="grid-line-v"></div>
+                <div class="orbit-path"></div>
+                <div class="earth">🌍</div>
+                <div class="sight-line" id="sightLine"></div>
+                
+                <!-- 月亮 -->
+                <div class="moon" id="moon">
+                    <div class="absolute inset-0 flex items-center">
+                        <!-- 左邊的臉 (預設朝向左側) -->
+                        <div class="w-1/2 h-full flex items-center justify-center">
+                            <div class="flex flex-col items-center ml-1">
+                                <div class="flex gap-1 mb-1">
+                                    <div class="w-1.5 h-1.5 bg-yellow-900 rounded-full"></div>
+                                    <div class="w-1.5 h-1.5 bg-yellow-900 rounded-full"></div>
+                                </div>
+                                <div class="w-3 h-1.5 border-b-2 border-yellow-900 rounded-b-full"></div>
+                            </div>
+                        </div>
+                        <!-- 右邊的暗面寫字 -->
+                        <div class="w-1/2 h-full flex items-center justify-center text-[10px] text-gray-400 font-bold -rotate-90 opacity-50">
+                            背面
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 解說文字框 -->
+            <div class="bg-blue-900/80 border-2 border-blue-400 p-6 rounded-2xl w-full max-w-sm text-left shadow-lg backdrop-blur-sm min-h-[160px] flex items-center">
+                <p id="explanationText" class="text-base md:text-lg text-white font-medium leading-relaxed w-full">
+                    <!-- 文字會用 JS 動態更新 -->
+                </p>
+            </div>
+        </div>
+
+        <!-- 下半部：太空控制台 (玻璃擬態) -->
+        <div class="glass-panel w-full p-5 md:p-6 rounded-3xl border-t border-white/20 flex flex-col gap-5 max-w-3xl">
+            
+            <!-- 控制列 1：輔助線與播放控制 -->
+            <div class="flex flex-wrap justify-between items-center gap-3 border-b border-white/10 pb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    🚀 太空控制台
+                </h2>
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center cursor-pointer text-yellow-200 font-bold bg-blue-950/60 border border-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-800 transition text-sm">
+                        <input type="checkbox" id="toggleSightLine" class="mr-2 w-4 h-4 accent-yellow-400" onchange="toggleSight()">
+                        👀 顯示地球視線
+                    </label>
+                    <button id="togglePlayBtn" onclick="togglePlay()" class="bg-orange-500 hover:bg-orange-400 text-white px-4 py-1.5 rounded-lg font-bold transition-colors shadow-md text-sm border border-orange-400 flex items-center gap-1 whitespace-nowrap min-w-[120px] justify-center">
+                        ⏸️ 動畫暫停
+                    </button>
+                </div>
+            </div>
+
+            <!-- 控制列 2：時光機滑桿 -->
+            <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700">
+                <div class="flex justify-between text-blue-200 text-sm mb-3 font-bold px-1">
+                    <span>✨ 直接拖曳滑桿，慢慢觀察：</span>
+                    <span id="angleDisplay" class="text-yellow-300 bg-black/30 px-2 py-0.5 rounded">目前位置：0°</span>
+                </div>
+                <input type="range" id="orbitSlider" min="0" max="360" value="0" class="w-full">
+                <div class="flex justify-between text-xs text-slate-400 mt-2 font-bold px-1">
+                    <span>起點</span>
+                    <span>1/4 圈 (90°)</span>
+                    <span>半圈 (180°)</span>
+                    <span>3/4 圈 (270°)</span>
+                    <span>終點</span>
+                </div>
+            </div>
+
+            <!-- 控制列 3：模式切換 -->
+            <div class="flex flex-col sm:flex-row gap-4 w-full mt-1">
+                <button onclick="setMode('none', this)" class="mode-btn flex-1 bg-slate-100 text-slate-800 font-bold py-3 px-2 rounded-xl border-b-4 border-slate-400 hover:bg-white transition-all text-sm md:text-base">
+                    ❌ 1. 月亮不自轉
+                </button>
+                <button onclick="setMode('sync', this)" class="mode-btn flex-1 bg-yellow-400 text-yellow-900 font-bold py-3 px-2 rounded-xl border-b-4 border-yellow-600 hover:bg-yellow-300 transition-all text-sm md:text-base btn-active">
+                    ✨ 2. 現在的月亮 (同步)
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const moon = document.getElementById('moon');
+        const explanationText = document.getElementById('explanationText');
+        const buttons = document.querySelectorAll('.mode-btn');
+        const sightLine = document.getElementById('sightLine');
+        
+        // 控制元件
+        const orbitSlider = document.getElementById('orbitSlider');
+        const togglePlayBtn = document.getElementById('togglePlayBtn');
+        const angleDisplay = document.getElementById('angleDisplay');
+
+        // 動畫變數
+        let orbitAngle = 0; // 弧度
+        const orbitRadius = 130; 
+        const orbitSpeed = 0.015; 
+        
+        let currentMode = 'sync'; 
+        let isAutoPlay = true;
+
+        const texts = {
+            none: "<span class='text-red-400 text-xl'>❌ <b>如果月亮不自己轉</b></span><br><br>地球的視線無法一直看著月亮的臉。<br><br>👉 請拖曳滑桿到「1/4圈 (90°)」看看，是不是只能看到月亮的肚子（側面）了？",
+            sync: "<span class='text-yellow-400 text-xl'>✨ <b>原來月亮會自己轉！</b></span><br><br>月亮一邊繞著地球跑，自己也<b>一邊在原地轉圈</b>喔！<br><br>👉 請拖曳滑桿到「1/4圈 (90°)」看看，月亮是不是剛好自己也轉了 90 度，永遠把笑臉對準地球呢？"
+        };
+
+        // 啟動或關閉視線
+        function toggleSight() {
+            const checkbox = document.getElementById('toggleSightLine');
+            sightLine.style.opacity = checkbox.checked ? '1' : '0';
+        }
+
+        // 暫停動畫
+        function pauseAnimation() {
+            isAutoPlay = false;
+            togglePlayBtn.innerHTML = '▶️ 動畫播放';
+            togglePlayBtn.classList.replace('bg-orange-500', 'bg-green-500');
+            togglePlayBtn.classList.replace('border-orange-400', 'border-green-400');
+        }
+
+        // 播放動畫
+        function playAnimation() {
+            isAutoPlay = true;
+            togglePlayBtn.innerHTML = '⏸️ 動畫暫停';
+            togglePlayBtn.classList.replace('bg-green-500', 'bg-orange-500');
+            togglePlayBtn.classList.replace('border-green-400', 'border-orange-400');
+            
+            // 同步目前的角度到滑桿
+            let deg = (orbitAngle * 180 / Math.PI) % 360;
+            if (deg < 0) deg += 360;
+            orbitSlider.value = deg;
+        }
+
+        // 切換播放狀態 (按鈕用)
+        function togglePlay() {
+            if (isAutoPlay) pauseAnimation();
+            else playAnimation();
+        }
+
+        // 滑桿拖曳事件 (優化：一拉滑桿就自動暫停)
+        orbitSlider.addEventListener('input', (e) => {
+            if (isAutoPlay) {
+                pauseAnimation(); // 自動切換為手動模式
+            }
+            // 將 0~360 的度數轉換回弧度
+            orbitAngle = e.target.value * (Math.PI / 180);
+            renderFrame(); // 手動更新畫面
+        });
+
+        // 模式切換
+        function setMode(mode, clickedBtn) {
+            currentMode = mode;
+            explanationText.innerHTML = texts[mode];
+
+            buttons.forEach(btn => {
+                btn.classList.remove('btn-active', 'bg-yellow-400', 'text-yellow-900', 'border-yellow-600');
+                btn.classList.add('bg-slate-100', 'text-slate-800', 'border-slate-400');
+            });
+            
+            clickedBtn.classList.add('btn-active', 'bg-yellow-400', 'text-yellow-900', 'border-yellow-600');
+            clickedBtn.classList.remove('bg-slate-100', 'text-slate-800', 'border-slate-400');
+            
+            if(!isAutoPlay) renderFrame();
+        }
+
+        // 核心計算與渲染函數
+        function renderFrame() {
+            // 1. 計算月亮在軌道上的位置
+            const x = Math.cos(orbitAngle) * orbitRadius;
+            const y = Math.sin(orbitAngle) * orbitRadius;
+
+            // 2. 更新視線 (Sight line) 的旋轉
+            const sightDeg = orbitAngle * (180 / Math.PI);
+            sightLine.style.transform = `rotate(${sightDeg}deg)`;
+
+            // 3. 計算月亮自己的自轉角度
+            let moonRotationAngle = 0;
+            if (currentMode === 'none') {
+                moonRotationAngle = 0; // 不轉，永遠朝向畫面左邊
+            } else if (currentMode === 'sync') {
+                moonRotationAngle = orbitAngle; // 轉動角度 = 公轉角度
+            }
+
+            // 4. 更新畫面
+            const rotationDeg = moonRotationAngle * (180 / Math.PI);
+            moon.style.transform = `translate(${x}px, ${y}px) rotate(${rotationDeg}deg)`;
+
+            // 5. 更新文字顯示的角度
+            let displayDeg = sightDeg % 360;
+            if (displayDeg < 0) displayDeg += 360;
+            angleDisplay.textContent = `目前位置：${Math.round(displayDeg)}°`;
+        }
+
+        // 動畫迴圈
+        function update() {
+            if (isAutoPlay) {
+                orbitAngle += orbitSpeed;
+                if (orbitAngle >= Math.PI * 2) {
+                    orbitAngle -= Math.PI * 2;
+                }
+                // 當處於自動播放時，滑桿跟著跑
+                let deg = (orbitAngle * 180 / Math.PI);
+                orbitSlider.value = deg;
+                
+                renderFrame();
+            }
+            requestAnimationFrame(update);
+        }
+
+        // 初始設定
+        explanationText.innerHTML = texts['sync'];
+        renderFrame(); // 先畫第一幀
+        update();      // 啟動迴圈
+    </script>
+</body>
+</html>
