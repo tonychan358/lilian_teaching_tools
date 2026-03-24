@@ -11,6 +11,7 @@
     
     <script>
         tailwind.config = {
+            darkMode: 'class', // 新增支援深色模式
             theme: {
                 extend: {
                     fontFamily: {
@@ -32,6 +33,14 @@
             background-size: 30px 30px;
             background-attachment: fixed;
             color: #334155;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 深色模式背景 */
+        body.dark {
+            background-color: #0f172a; /* slate-900 */
+            background-image: radial-gradient(#334155 3px, transparent 3px);
+            color: #e2e8f0;
         }
         
         /* 童趣風格的 3D 立體卡片 */
@@ -61,23 +70,66 @@
             border-color: #94a3b8;
             background-color: #f8fafc;
         }
+
+        /* 深色模式下的卡片與按鈕調整 */
+        .dark .tool-card {
+            background-color: #1e293b;
+            border-color: #334155;
+            box-shadow: 4px 6px 0px #0f172a;
+        }
+        .dark .tool-card:hover {
+            border-color: #475569;
+            box-shadow: 6px 10px 0px #020617;
+        }
+        .dark .tool-card h2 { color: #f8fafc; }
+        .dark .tool-card p { color: #cbd5e1; }
+        
+        .dark .action-btn {
+            background-color: #334155;
+            border-color: #475569;
+            color: #f8fafc;
+            box-shadow: 2px 3px 0px #0f172a;
+        }
+        .dark .action-btn:hover {
+            background-color: #475569;
+            border-color: #64748b;
+        }
+
+        /* 篩選器按鈕樣式 */
+        .filter-btn {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .filter-btn.active {
+            background-color: #38bdf8;
+            color: white;
+            border-color: #0284c7;
+            box-shadow: 2px 3px 0px #0284c7;
+            transform: translateY(-2px);
+        }
+        .dark .filter-btn.active {
+            background-color: #0284c7;
+            border-color: #0369a1;
+            box-shadow: 2px 3px 0px #082f49;
+        }
     </style>
 </head>
-<body class="min-h-screen font-sans flex flex-col">
+<body class="min-h-screen font-sans flex flex-col transition-colors duration-300">
 
     <!-- 頂部導航列 -->
-    <header class="w-full px-6 py-4 md:px-10 md:py-5 flex justify-between items-center sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b-4 border-sky-200 shadow-sm">
-        <h1 class="text-2xl md:text-3xl font-black text-slate-800 tracking-wider flex items-center gap-2">
+    <header class="w-full px-6 py-4 md:px-10 md:py-5 flex justify-between items-center sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b-4 border-sky-200 shadow-sm dark:bg-slate-900/90 dark:border-slate-800">
+        <h1 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-wider flex items-center gap-2">
             <span class="text-4xl">🌟</span> 陳老師<span class="font-bold text-sky-500 ml-1 text-xl md:text-2xl">教育AI工具箱</span>
         </h1>
         
         <div class="flex items-center gap-3">
-            <button class="hidden md:flex px-5 py-2.5 rounded-2xl border-2 border-slate-200 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-sm transition-all transform hover:scale-105 shadow-[2px_2px_0px_#cbd5e1]">
+            <button class="hidden md:flex px-5 py-2.5 rounded-2xl border-2 border-slate-200 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold text-sm transition-all transform hover:scale-105 shadow-[2px_2px_0px_#cbd5e1] dark:border-slate-600 dark:bg-amber-900/40 dark:text-amber-200 dark:shadow-[2px_2px_0px_#0f172a]">
                 陳老師 | 教育百寶箱
             </button>
-            <button class="w-11 h-11 rounded-full border-2 border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center transition-all shadow-[2px_2px_0px_#cbd5e1] hover:scale-105">
-                <!-- 簡單的深色模式切換圖示示意 -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+            <button onclick="toggleDarkMode()" id="darkModeBtn" class="w-11 h-11 rounded-full border-2 border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center transition-all shadow-[2px_2px_0px_#cbd5e1] hover:scale-105 dark:bg-slate-800 dark:border-slate-600 dark:shadow-[2px_2px_0px_#0f172a] dark:hover:bg-slate-700">
+                <!-- 預設顯示月亮 (切換至深色) -->
+                <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 dark:text-slate-300"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+                <!-- 太陽圖示 (切換至淺色，預設隱藏) -->
+                <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400 hidden"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
             </button>
         </div>
     </header>
@@ -85,10 +137,18 @@
     <!-- 主要內容區 (卡片網格) -->
     <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
         
+        <!-- 篩選器 -->
+        <div id="filter-container" class="mb-8 flex flex-wrap gap-3 justify-center hidden">
+            <button onclick="filterCards('全部')" class="filter-btn active px-6 py-2.5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 font-bold shadow-[2px_2px_0px_#cbd5e1] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:shadow-[2px_2px_0px_#0f172a]">全部</button>
+            <button onclick="filterCards('課室管理')" class="filter-btn px-6 py-2.5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 font-bold shadow-[2px_2px_0px_#cbd5e1] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:shadow-[2px_2px_0px_#0f172a]">課室管理</button>
+            <button onclick="filterCards('人文學科')" class="filter-btn px-6 py-2.5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 font-bold shadow-[2px_2px_0px_#cbd5e1] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:shadow-[2px_2px_0px_#0f172a]">人文學科</button>
+            <button onclick="filterCards('數學教育')" class="filter-btn px-6 py-2.5 rounded-2xl border-2 border-slate-200 bg-white text-slate-700 font-bold shadow-[2px_2px_0px_#cbd5e1] dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:shadow-[2px_2px_0px_#0f172a]">數學教育</button>
+        </div>
+
         <!-- 載入中 / 錯誤提示 -->
         <div id="loading" class="text-center py-20 flex flex-col items-center justify-center min-h-[40vh]">
             <div id="loading-spinner" class="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-sky-400 mb-6"></div>
-            <p id="loading-text" class="text-sky-600 font-bold text-xl tracking-wide">正在準備魔法工具箱...</p>
+            <p id="loading-text" class="text-sky-600 font-bold text-xl tracking-wide dark:text-sky-400">正在準備魔法工具箱...</p>
         </div>
 
         <!-- 卡片容器 -->
@@ -99,14 +159,63 @@
     </main>
 
     <!-- 頁尾 -->
-    <footer class="text-center py-8 text-slate-400 font-medium text-sm border-t-2 border-slate-200 bg-white mt-auto">
+    <footer class="text-center py-8 text-slate-400 font-medium text-sm border-t-2 border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 dark:text-slate-500 mt-auto transition-colors duration-300">
         &copy; 陳老師. 熱愛教學、創新學習.
     </footer>
 
     <!-- JavaScript 邏輯：從 Google Sheet 讀取資料 -->
-    <script>        
+    <script>
+        /**
+         * 💡 【使用教學】如何將 Google Sheet 連接到這裡？
+         * 1. Google 試算表標題列需包含：
+         * Title, Category, Description, Btn1Text, Btn1Link, Btn2Text, Btn2Link
+         * (※ Category 欄位可填入：課室管理、人文學科、數學教育)
+         */
+        
         // 🚨 將這裡替換為你的 Google Sheet CSV 網址！ 🚨
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrblQxvKEZlK2tB3G772D6njOUW7V_RzqLbUxwRgS2I1E4R4EwHdnicHOYiRtbH7wFUgA63FRsw1X9/pub?output=csv'; 
+
+        let allToolsData = []; // 儲存所有資料以便篩選
+
+        // 深色模式切換邏輯
+        function toggleDarkMode() {
+            const body = document.body;
+            const moonIcon = document.getElementById('moonIcon');
+            const sunIcon = document.getElementById('sunIcon');
+            
+            body.classList.toggle('dark');
+            
+            if (body.classList.contains('dark')) {
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+            } else {
+                moonIcon.classList.remove('hidden');
+                sunIcon.classList.add('hidden');
+            }
+        }
+
+        // 篩選功能邏輯
+        function filterCards(category) {
+            // 更新按鈕樣式
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => {
+                if (btn.innerText === category) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // 執行篩選
+            if (category === '全部') {
+                renderCards(allToolsData);
+            } else {
+                const filteredData = allToolsData.filter(item => 
+                    item.Category && item.Category.includes(category)
+                );
+                renderCards(filteredData);
+            }
+        }
 
         // 顯示錯誤訊息
         function showError() {
@@ -159,57 +268,65 @@
             const container = document.getElementById('tools-container');
             container.innerHTML = ''; // 清空內容
 
-            // 🍬 活潑的糖果色系主題與預設圖示
-            const themes = [
-                { color: 'bg-pink-100 text-pink-500 border-pink-200', icon: '🎨' },
-                { color: 'bg-sky-100 text-sky-500 border-sky-200', icon: '🚀' },
-                { color: 'bg-emerald-100 text-emerald-500 border-emerald-200', icon: '🍀' },
-                { color: 'bg-amber-100 text-amber-500 border-amber-200', icon: '💡' },
-                { color: 'bg-violet-100 text-violet-500 border-violet-200', icon: '✨' }
-            ];
+            if (data.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-12 text-slate-500 font-bold text-lg dark:text-slate-400">這個分類目前還沒有工具哦！🌱</div>';
+            } else {
+                // 🍬 活潑的糖果色系主題與預設圖示
+                const themes = [
+                    { color: 'bg-pink-100 text-pink-500 border-pink-200', icon: '🎨' },
+                    { color: 'bg-sky-100 text-sky-500 border-sky-200', icon: '🚀' },
+                    { color: 'bg-emerald-100 text-emerald-500 border-emerald-200', icon: '🍀' },
+                    { color: 'bg-amber-100 text-amber-500 border-amber-200', icon: '💡' },
+                    { color: 'bg-violet-100 text-violet-500 border-violet-200', icon: '✨' }
+                ];
 
-            data.forEach((item, index) => {
-                // 若沒有標題，則跳過
-                if(!item.Title) return;
+                data.forEach((item, index) => {
+                    // 若沒有標題，則跳過
+                    if(!item.Title) return;
 
-                const theme = themes[index % themes.length];
-                const card = document.createElement('div');
-                card.className = 'tool-card bg-white rounded-3xl p-6 md:p-8 flex flex-col h-full relative overflow-hidden group z-10';
+                    const theme = themes[index % themes.length];
+                    const card = document.createElement('div');
+                    card.className = 'tool-card bg-white rounded-3xl p-6 md:p-8 flex flex-col h-full relative overflow-hidden group z-10';
 
-                // 按鈕 HTML 生成
-                let buttonsHtml = '';
-                if (item.Btn1Text) {
-                    buttonsHtml += `<a href="${item.Btn1Link || '#'}" target="_blank" class="action-btn rounded-xl px-5 py-2.5 text-sm font-bold text-slate-700 flex items-center shrink-0 relative z-10 hover:text-sky-600">
-                        ${item.Btn1Text}
-                    </a>`;
-                }
-                if (item.Btn2Text) {
-                    buttonsHtml += `<a href="${item.Btn2Link || '#'}" target="_blank" class="action-btn rounded-xl px-5 py-2.5 text-sm font-bold text-slate-700 flex items-center shrink-0 relative z-10 hover:text-sky-600">
-                        ${item.Btn2Text}
-                    </a>`;
-                }
+                    // 按鈕 HTML 生成
+                    let buttonsHtml = '';
+                    if (item.Btn1Text) {
+                        buttonsHtml += `<a href="${item.Btn1Link || '#'}" target="_blank" class="action-btn rounded-xl px-5 py-2.5 text-sm font-bold text-slate-700 flex items-center shrink-0 relative z-10 hover:text-sky-600">
+                            ${item.Btn1Text}
+                        </a>`;
+                    }
+                    if (item.Btn2Text) {
+                        buttonsHtml += `<a href="${item.Btn2Link || '#'}" target="_blank" class="action-btn rounded-xl px-5 py-2.5 text-sm font-bold text-slate-700 flex items-center shrink-0 relative z-10 hover:text-sky-600">
+                            ${item.Btn2Text}
+                        </a>`;
+                    }
 
-                card.innerHTML = `
-                    <div class="flex flex-col mb-4 relative z-10">
-                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-4 ${theme.color} border-2 shadow-sm transform group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
-                            ${theme.icon}
+                    card.innerHTML = `
+                        <div class="flex flex-col mb-4 relative z-10">
+                            <div class="flex justify-between items-start">
+                                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-4 ${theme.color} border-2 shadow-sm transform group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
+                                    ${theme.icon}
+                                </div>
+                                ${item.Category ? `<span class="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-500 rounded-full border border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600">${item.Category}</span>` : ''}
+                            </div>
+                            <h2 class="text-xl font-black text-slate-800 leading-snug">
+                                ${item.Title}
+                            </h2>
                         </div>
-                        <h2 class="text-xl font-black text-slate-800 leading-snug">
-                            ${item.Title}
-                        </h2>
-                    </div>
-                    <p class="text-slate-600 mb-8 flex-grow text-sm leading-relaxed font-medium relative z-10">${item.Description || ''}</p>
-                    <div class="flex flex-wrap gap-3 mt-auto relative z-10">
-                        ${buttonsHtml}
-                    </div>
-                    <!-- 裝飾用小圓圈 -->
-                    <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-slate-50 rounded-full opacity-60 z-0 group-hover:scale-[2] transition-transform duration-500"></div>
-                `;
-                container.appendChild(card);
-            });
+                        <p class="text-slate-600 mb-8 flex-grow text-sm leading-relaxed font-medium relative z-10">${item.Description || ''}</p>
+                        <div class="flex flex-wrap gap-3 mt-auto relative z-10">
+                            ${buttonsHtml}
+                        </div>
+                        <!-- 裝飾用小圓圈 -->
+                        <div class="absolute -bottom-6 -right-6 w-24 h-24 bg-slate-50 rounded-full opacity-60 z-0 group-hover:scale-[2] transition-transform duration-500 dark:bg-slate-800"></div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
 
-            // 隱藏載入中，顯示網格
+            // 隱藏載入中，顯示網格與篩選器
             document.getElementById('loading').classList.add('hidden');
+            document.getElementById('filter-container').classList.remove('hidden');
             container.classList.remove('hidden');
         }
 
@@ -232,7 +349,8 @@
                     if(jsonData.length === 0) {
                         showError();
                     } else {
-                        renderCards(jsonData);
+                        allToolsData = jsonData; // 儲存到全域變數，供篩選器使用
+                        renderCards(allToolsData);
                     }
 
                 } catch (error) {
