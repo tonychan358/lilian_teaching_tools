@@ -4,16 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏎️ 速率賽車組裝廠</title>
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- 引入 Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- 引入 Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
-    <!-- 引入 Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
@@ -31,28 +26,33 @@
         }
         .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
+        /* 修改後的車子動畫：只移動車子容器 */
         @keyframes driveAway {
             0% { transform: translateX(0) scale(1); }
-            20% { transform: translateX(-20px) scale(1.05); } 
-            100% { transform: translateX(150vw) scale(1.05); } 
+            15% { transform: translateX(-20px) scale(1.02); } /* 微微後退蓄力 */
+            100% { transform: translateX(150vw) scale(1.02); } /* 往前衝出畫面 */
         }
-        .animate-drive {
+        .animate-car-drive {
             animation: driveAway 2s cubic-bezier(0.5, 0, 0.8, 1) forwards;
-            animation-delay: 1s;
+            animation-delay: 1s; /* 灑花後等一秒才開走 */
         }
 
+        /* 馬路虛線動畫：維持不變，產生相對速度感 */
         @keyframes roadMove {
             0% { background-position: 0px 0; }
-            100% { background-position: -100px 0; }
+            100% { background-position: -150px 0; } /* 讓虛線動得快一點 */
         }
-        .road-moving { animation: roadMove 0.2s linear infinite; }
+        .road-moving { 
+            animation: roadMove 0.15s linear infinite; 
+            /* 在車子開始開走時(1秒後)才開始移動虛線 */
+            animation-delay: 1s;
+        }
 
         .card-transition { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        .wheel-spin { animation: spin 0.5s linear infinite; }
+        .wheel-spin { animation: spin 0.4s linear infinite; }
 
-        /* 總結面板浮現動畫 */
         @keyframes popIn {
             0% { opacity: 0; transform: scale(0.8) translateY(20px); }
             100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -66,26 +66,22 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // 產生隨機題目的函數 (保證整除、產生 3 張卡片)
         const generateCards = () => {
-            // 1. 隨機產生 3 個不同的整數速率 (介於 2 到 15 之間，適合國小生計算)
             let speeds = [];
             while(speeds.length < 3) {
-                let v = Math.floor(Math.random() * 11) + 2; // 2 ~ 12 m/s
+                let v = Math.floor(Math.random() * 11) + 2; 
                 if(!speeds.includes(v)) speeds.push(v);
             }
-            // 將速率由小到大排序 (代表正確順序：車尾、車身、車頭)
             speeds.sort((a, b) => a - b);
 
             let cards = [];
             let maxDist = 0;
             const parts = ['車尾', '車身', '車頭'];
 
-            // 2. 隨機產生時間並計算出整數距離
             for(let i = 0; i < 3; i++) {
-                let time = Math.floor(Math.random() * 8) + 2; // 2 ~ 9 秒
+                let time = Math.floor(Math.random() * 8) + 2; 
                 let distance = speeds[i] * time;
-                if (distance > maxDist) maxDist = distance; // 紀錄最大距離供長條圖比例使用
+                if (distance > maxDist) maxDist = distance; 
                 
                 cards.push({
                     id: 'c' + i,
@@ -190,7 +186,6 @@
             const checkAnswer = () => {
                 if (slots.includes(null)) return;
 
-                // 驗證速率是否由小到大排列
                 const isCorrect = 
                     slots[0].speed < slots[1].speed &&
                     slots[1].speed < slots[2].speed;
@@ -204,10 +199,9 @@
                         colors: ['#FFD700', '#FF6347', '#4169E1', '#32CD32']
                     });
                     
-                    // 車子開走動畫需2.5秒，動畫差不多結束時顯示總結面板
                     setTimeout(() => {
                         setShowSummary(true);
-                    }, 2800);
+                    }, 3000); // 稍微延長等待時間，確保車子開出畫面後才顯示總結
                 } else {
                     setGameState('error');
                     setTimeout(() => {
@@ -232,7 +226,6 @@
                 const isSelected = selectedCardId === card.id;
                 const isSuccess = gameState === 'success';
 
-                // 長條圖寬度依據此局最大距離等比例計算
                 const barWidth = `${(card.distance / maxDistance) * 100}%`;
 
                 const cardBaseStyle = `card-transition relative overflow-hidden cursor-pointer select-none h-48 flex flex-col justify-center
@@ -243,8 +236,8 @@
                 
                 let roundedStyle = '';
                 if (isSuccess && source === 'slot') {
-                    if (index === 0) roundedStyle = 'rounded-l-[40px]'; // 車尾
-                    if (index === 2) roundedStyle = 'rounded-r-[50px]'; // 車頭
+                    if (index === 0) roundedStyle = 'rounded-l-[40px]'; 
+                    if (index === 2) roundedStyle = 'rounded-r-[50px]'; 
                 }
 
                 return (
@@ -310,11 +303,10 @@
                         ))}
                     </div>
 
-                    {/* 總結面板 (車子開走後才顯示) */}
+                    {/* 總結面板 */}
                     {showSummary && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center z-40 bg-white/60 backdrop-blur-sm animate-pop-in">
                             <div className="bg-white border-8 border-yellow-400 rounded-3xl p-10 max-w-3xl text-center shadow-2xl relative overflow-hidden">
-                                {/* 裝飾背景 */}
                                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-200 rounded-full opacity-50"></div>
                                 <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-200 rounded-full opacity-50"></div>
                                 
@@ -350,43 +342,48 @@
                         </div>
                     )}
 
-                    {/* 組裝區 (Slots) */}
-                    <div className={`w-full max-w-6xl relative mt-auto mb-16 ${gameState === 'success' ? 'animate-drive' : ''} ${showSummary ? 'hidden' : 'block'}`}>
+                    {/* 下半部：包含標籤、插槽區與馬路 */}
+                    <div className={`w-full max-w-6xl relative mt-auto mb-16 ${showSummary ? 'hidden' : 'block'}`}>
                         
-                        <div className="flex justify-between w-full px-8 mb-4">
+                        <div className="flex justify-between w-full px-8 mb-4 relative z-20">
                             <div className="text-2xl font-black text-orange-600 bg-white px-6 py-2 rounded-2xl shadow-sm border-b-4 border-orange-200">🐢 最慢 (組裝車尾)</div>
                             <div className="text-2xl font-black text-red-600 bg-white px-6 py-2 rounded-2xl shadow-sm border-b-4 border-red-200">最快 (組裝車頭) 🐇</div>
                         </div>
 
-                        <div className={`flex items-end justify-center w-full px-8 z-10 relative max-w-5xl mx-auto ${gameState === 'error' ? 'animate-shake' : ''} ${gameState === 'success' ? 'gap-0' : 'gap-6'}`}>
-                            {slots.map((card, idx) => (
-                                <div 
-                                    key={`slot-${idx}`} 
-                                    className={`card-transition relative w-1/3 h-48 ${gameState === 'success' ? '' : 'bg-black/10 border-4 border-dashed border-black/20 rounded-2xl'}`}
-                                    onClick={() => handleSlotClick(idx)}
-                                >
-                                    {card ? renderCard(card, 'slot', idx) : (
-                                        <div className="absolute inset-0 flex items-center justify-center text-5xl font-black text-black/10">
-                                            {idx + 1}
-                                        </div>
-                                    )}
-
-                                    {gameState === 'success' && (idx === 0 || idx === 2) && (
-                                        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-gray-800 rounded-full border-4 border-gray-300 shadow-xl flex items-center justify-center z-20 wheel-spin">
-                                            <div className="w-8 h-8 bg-gray-400 rounded-full border-2 border-gray-600 flex items-center justify-center">
-                                                <div className="w-2 h-2 bg-gray-800 rounded-full"></div>
+                        {/* 修改點：將動畫 class 加在包覆卡片的內部 div 上，而不是跟馬路共用外層 */}
+                        <div className={`relative z-10 max-w-5xl mx-auto`}>
+                             <div className={`flex items-end justify-center w-full px-8 ${gameState === 'error' ? 'animate-shake' : ''} ${gameState === 'success' ? 'animate-car-drive gap-0' : 'gap-6'}`}>
+                                {slots.map((card, idx) => (
+                                    <div 
+                                        key={`slot-${idx}`} 
+                                        className={`card-transition relative w-1/3 h-48 ${gameState === 'success' ? '' : 'bg-black/10 border-4 border-dashed border-black/20 rounded-2xl'}`}
+                                        onClick={() => handleSlotClick(idx)}
+                                    >
+                                        {card ? renderCard(card, 'slot', idx) : (
+                                            <div className="absolute inset-0 flex items-center justify-center text-5xl font-black text-black/10">
+                                                {idx + 1}
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                        )}
+
+                                        {gameState === 'success' && (idx === 0 || idx === 2) && (
+                                            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-gray-800 rounded-full border-4 border-gray-300 shadow-xl flex items-center justify-center z-20 wheel-spin">
+                                                <div className="w-8 h-8 bg-gray-400 rounded-full border-2 border-gray-600 flex items-center justify-center">
+                                                    <div className="w-2 h-2 bg-gray-800 rounded-full"></div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
+                        {/* 馬路：固定在底層，不會跟著車子位移 */}
                         <div className="absolute -bottom-6 left-[-50vw] right-[-50vw] h-12 bg-slate-700 -z-10 border-t-8 border-slate-800 overflow-hidden">
+                            {/* 車子開走時(1秒後)，馬路虛線才開始向後退 */}
                             <div className={`w-full h-full ${gameState === 'success' ? 'road-moving' : ''}`} 
                                  style={{ 
                                      backgroundImage: 'linear-gradient(90deg, #fff 50%, transparent 50%)', 
-                                     backgroundSize: '100px 4px', 
+                                     backgroundSize: '150px 4px', 
                                      backgroundPosition: '0px center', 
                                      backgroundRepeat: 'repeat-x' 
                                  }}>
@@ -394,7 +391,6 @@
                         </div>
                     </div>
 
-                    {/* 控制按鈕 (遊戲進行中顯示) */}
                     {!showSummary && (
                         <div className="fixed bottom-8 flex gap-6 z-50">
                             {gameState === 'playing' || gameState === 'error' ? (
