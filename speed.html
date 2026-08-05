@@ -4,82 +4,100 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏎️ 速率賽車組裝廠</title>
-    <!-- 引入 Tailwind CSS (用於快速與美觀的排版) -->
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- 引入 Babel 用於瀏覽器內編譯 JSX -->
+    <!-- 引入 Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- 引入 Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&family=Noto+Sans+TC:wght@700;900&display=swap" rel="stylesheet">
-    <!-- 引入 Canvas Confetti 用於過關灑花特效 -->
+    <!-- 引入 Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
         body {
             font-family: 'Nunito', 'Noto Sans TC', sans-serif;
-            background-color: #87CEEB; /* 天空藍 */
+            background-color: #87CEEB; 
             overflow-x: hidden;
-            touch-action: manipulation; /* 改善觸控體驗 */
+            touch-action: manipulation;
         }
         
-        /* 抖動錯誤動畫 */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             20%, 60% { transform: translateX(-10px); }
             40%, 80% { transform: translateX(10px); }
         }
-        .animate-shake {
-            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
+        .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
-        /* 車子開走動畫 */
         @keyframes driveAway {
             0% { transform: translateX(0) scale(1); }
-            20% { transform: translateX(-20px) scale(1.05); } /* 蓄力後退 */
-            100% { transform: translateX(150vw) scale(1.05); } /* 向右衝刺 */
+            20% { transform: translateX(-20px) scale(1.05); } 
+            100% { transform: translateX(150vw) scale(1.05); } 
         }
         .animate-drive {
             animation: driveAway 2s cubic-bezier(0.5, 0, 0.8, 1) forwards;
             animation-delay: 1s;
         }
 
-        /* 道路虛線後退動畫 (視覺上車子往前進) */
         @keyframes roadMove {
             0% { background-position: 0px 0; }
             100% { background-position: -100px 0; }
         }
-        .road-moving {
-            animation: roadMove 0.2s linear infinite;
-        }
+        .road-moving { animation: roadMove 0.2s linear infinite; }
 
-        /* 卡片融合時的過渡特效 */
-        .card-transition {
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        .card-transition { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        /* 輪子旋轉動畫 */
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .wheel-spin { animation: spin 0.5s linear infinite; }
+
+        /* 總結面板浮現動畫 */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop-in { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
     <div id="root" class="flex-grow flex flex-col"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
-        // 定義 4 張卡片的資料 (速率 = 距離 / 時間)
-        // 刻意設計：順序分別為 2m/s, 4m/s, 5m/s, 8m/s
-        const INITIAL_CARDS = [
-            { id: 'c1', distance: 10, time: 5, speed: 2, part: '尾翼' },
-            { id: 'c2', distance: 12, time: 3, speed: 4, part: '車身後' },
-            { id: 'c3', distance: 30, time: 6, speed: 5, part: '車身前' },
-            { id: 'c4', distance: 16, time: 2, speed: 8, part: '車頭' },
-        ];
+        // 產生隨機題目的函數 (保證整除、產生 3 張卡片)
+        const generateCards = () => {
+            // 1. 隨機產生 3 個不同的整數速率 (介於 2 到 15 之間，適合國小生計算)
+            let speeds = [];
+            while(speeds.length < 3) {
+                let v = Math.floor(Math.random() * 11) + 2; // 2 ~ 12 m/s
+                if(!speeds.includes(v)) speeds.push(v);
+            }
+            // 將速率由小到大排序 (代表正確順序：車尾、車身、車頭)
+            speeds.sort((a, b) => a - b);
 
-        // 將陣列隨機打亂的函數
+            let cards = [];
+            let maxDist = 0;
+            const parts = ['車尾', '車身', '車頭'];
+
+            // 2. 隨機產生時間並計算出整數距離
+            for(let i = 0; i < 3; i++) {
+                let time = Math.floor(Math.random() * 8) + 2; // 2 ~ 9 秒
+                let distance = speeds[i] * time;
+                if (distance > maxDist) maxDist = distance; // 紀錄最大距離供長條圖比例使用
+                
+                cards.push({
+                    id: 'c' + i,
+                    distance: distance,
+                    time: time,
+                    speed: speeds[i],
+                    part: parts[i]
+                });
+            }
+            return { cards, maxDist };
+        };
+
         const shuffleArray = (array) => {
             const newArray = [...array];
             for (let i = newArray.length - 1; i > 0; i--) {
@@ -91,54 +109,49 @@
 
         const App = () => {
             const [pool, setPool] = useState([]);
-            const [slots, setSlots] = useState([null, null, null, null]);
+            const [slots, setSlots] = useState([null, null, null]);
             const [selectedCardId, setSelectedCardId] = useState(null);
-            const [gameState, setGameState] = useState('playing'); // playing, checking, success, error
+            const [gameState, setGameState] = useState('playing'); 
+            const [maxDistance, setMaxDistance] = useState(10);
+            const [showSummary, setShowSummary] = useState(false);
 
-            // 初始化遊戲
             useEffect(() => {
                 resetGame();
             }, []);
 
             const resetGame = () => {
-                setPool(shuffleArray(INITIAL_CARDS));
-                setSlots([null, null, null, null]);
+                const { cards, maxDist } = generateCards();
+                setMaxDistance(maxDist);
+                setPool(shuffleArray(cards));
+                setSlots([null, null, null]);
                 setSelectedCardId(null);
                 setGameState('playing');
+                setShowSummary(false);
             };
 
-            // 點擊卡片的邏輯 (白板友善)
             const handleCardClick = (cardId, fromSource, index) => {
                 if (gameState === 'success') return;
-
                 if (selectedCardId === null) {
-                    // 選取卡片
                     setSelectedCardId(cardId);
                 } else {
                     if (selectedCardId === cardId) {
-                        // 取消選取
                         setSelectedCardId(null);
                     } else {
-                        // 如果選了另一張卡片，執行交換或移動邏輯
                         moveCard(selectedCardId, { type: fromSource, index });
                         setSelectedCardId(null);
                     }
                 }
             };
 
-            // 點擊空插槽的邏輯
             const handleSlotClick = (index) => {
                 if (gameState === 'success') return;
-                
                 if (selectedCardId !== null && slots[index] === null) {
                     moveCard(selectedCardId, { type: 'slot', index });
                     setSelectedCardId(null);
                 }
             };
 
-            // 處理卡片移動的核心邏輯
             const moveCard = (cardId, target) => {
-                // 找出卡片原本在哪裡
                 let source = null;
                 let cardData = null;
                 
@@ -156,38 +169,31 @@
 
                 if (!cardData) return;
 
-                // 複製狀態
                 let newPool = [...pool];
                 let newSlots = [...slots];
                 let targetCard = null;
 
-                // 取得目標位置的卡片(如果有的話，用來交換)
                 if (target.type === 'pool') targetCard = newPool[target.index];
                 if (target.type === 'slot') targetCard = newSlots[target.index];
 
-                // 移除原位置的卡片
                 if (source.type === 'pool') newPool[source.index] = targetCard;
                 if (source.type === 'slot') newSlots[source.index] = targetCard;
 
-                // 放置到新位置
                 if (target.type === 'pool') newPool[target.index] = cardData;
                 if (target.type === 'slot') newSlots[target.index] = cardData;
 
-                setPool(newPool.filter(c => c !== null)); // Pool 自動擠壓空白
+                setPool(newPool.filter(c => c !== null));
                 setSlots(newSlots);
-                if(gameState === 'error') setGameState('playing'); // 清除錯誤狀態
+                if(gameState === 'error') setGameState('playing');
             };
 
-            // 檢查答案
             const checkAnswer = () => {
-                if (slots.includes(null)) return; // 還沒排滿
+                if (slots.includes(null)) return;
 
-                // 驗證速率是否由小到大 (2, 4, 5, 8)
+                // 驗證速率是否由小到大排列
                 const isCorrect = 
-                    slots[0].speed === 2 &&
-                    slots[1].speed === 4 &&
-                    slots[2].speed === 5 &&
-                    slots[3].speed === 8;
+                    slots[0].speed < slots[1].speed &&
+                    slots[1].speed < slots[2].speed;
 
                 if (isCorrect) {
                     setGameState('success');
@@ -197,15 +203,19 @@
                         origin: { y: 0.5 },
                         colors: ['#FFD700', '#FF6347', '#4169E1', '#32CD32']
                     });
+                    
+                    // 車子開走動畫需2.5秒，動畫差不多結束時顯示總結面板
+                    setTimeout(() => {
+                        setShowSummary(true);
+                    }, 2800);
                 } else {
                     setGameState('error');
                     setTimeout(() => {
                         if (gameState !== 'success') setGameState('playing');
-                    }, 1000); // 1秒後停止抖動
+                    }, 1000); 
                 }
             };
 
-            // SVG 圖示組件
             const ClockIcon = () => (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -217,27 +227,24 @@
                 </svg>
             );
 
-            // 算繪單張卡片
             const renderCard = (card, source, index) => {
                 if (!card) return null;
                 const isSelected = selectedCardId === card.id;
                 const isSuccess = gameState === 'success';
 
-                // 計算距離進度條寬度 (最大距離是30米，所以除以30)
-                const barWidth = `${(card.distance / 30) * 100}%`;
+                // 長條圖寬度依據此局最大距離等比例計算
+                const barWidth = `${(card.distance / maxDistance) * 100}%`;
 
-                // 融合狀態下的樣式改變
                 const cardBaseStyle = `card-transition relative overflow-hidden cursor-pointer select-none h-48 flex flex-col justify-center
                     ${isSelected ? 'ring-4 ring-yellow-400 transform -translate-y-2' : 'hover:-translate-y-1'}
                     ${isSuccess && source === 'slot' 
                         ? 'bg-red-500 border-none shadow-none text-white' 
                         : 'bg-white border-4 border-slate-300 shadow-[0_8px_0_rgba(0,0,0,0.1)] rounded-2xl p-4'}`;
                 
-                // 車頭車尾圓角處理 (融合時)
                 let roundedStyle = '';
                 if (isSuccess && source === 'slot') {
                     if (index === 0) roundedStyle = 'rounded-l-[40px]'; // 車尾
-                    if (index === 3) roundedStyle = 'rounded-r-[50px]'; // 車頭
+                    if (index === 2) roundedStyle = 'rounded-r-[50px]'; // 車頭
                 }
 
                 return (
@@ -246,9 +253,7 @@
                         className={`${cardBaseStyle} ${roundedStyle} w-full shadow-lg`}
                         onClick={() => handleCardClick(card.id, source, index)}
                     >
-                        {/* 遊戲中狀態：顯示資訊 */}
                         <div className={`transition-opacity duration-300 ${isSuccess && source === 'slot' ? 'opacity-0 hidden' : 'opacity-100 flex flex-col h-full justify-between'}`}>
-                            {/* 距離 */}
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
                                     <RoadIcon />
@@ -259,28 +264,19 @@
                                 </div>
                             </div>
                             
-                            {/* 時間 */}
                             <div className="flex items-center gap-2 mt-auto pb-2 border-b-2 border-dashed border-gray-200">
                                 <ClockIcon />
                                 <span className="text-xl font-black text-gray-700">時間：{card.time} 秒</span>
                             </div>
-
-                            {/* 提示(給老師偷偷看，或者設定為隱藏) */}
-                            {/* <div className="text-xs text-gray-300 text-right mt-1">速率: {card.speed} m/s</div> */}
                         </div>
 
-                        {/* 成功融合狀態：顯示車窗與車身細節 */}
                         {isSuccess && source === 'slot' && (
                             <div className="absolute inset-0 flex items-center justify-center">
-                                {/* 根據車子部位加上車窗 */}
                                 {index === 1 && (
-                                    <div className="absolute top-4 right-2 w-16 h-12 bg-sky-200 rounded-tl-xl rounded-tr-sm border-4 border-red-600"></div>
+                                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-20 h-12 bg-sky-200 rounded-t-2xl border-4 border-red-600"></div>
                                 )}
                                 {index === 2 && (
-                                    <div className="absolute top-4 left-2 w-20 h-12 bg-sky-200 rounded-tr-3xl rounded-tl-sm border-4 border-red-600"></div>
-                                )}
-                                {index === 3 && (
-                                    <div className="absolute top-10 right-4 w-6 h-6 bg-yellow-400 rounded-full shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div> // 車頭燈
+                                    <div className="absolute top-10 right-4 w-6 h-6 bg-yellow-400 rounded-full shadow-[0_0_15px_rgba(255,215,0,0.8)]"></div>
                                 )}
                             </div>
                         )}
@@ -293,17 +289,17 @@
             return (
                 <div className="flex-grow flex flex-col items-center py-6 px-4">
                     {/* 標題區 */}
-                    <div className="text-center mb-6 bg-white/80 px-8 py-3 rounded-full shadow-md border-4 border-white backdrop-blur-sm">
+                    <div className={`text-center mb-6 bg-white/80 px-8 py-3 rounded-full shadow-md border-4 border-white backdrop-blur-sm transition-opacity duration-500 ${showSummary ? 'opacity-0' : 'opacity-100'}`}>
                         <h1 className="text-4xl font-black text-blue-700 mb-2 tracking-wide">
                             🏎️ 速率賽車組裝廠 🏁
                         </h1>
                         <p className="text-lg font-bold text-gray-600">
-                            計算速率 (距離÷時間)，把零件從 <span className="text-orange-500 bg-orange-100 px-2 rounded">最慢</span> 排到 <span className="text-red-500 bg-red-100 px-2 rounded">最快</span>！
+                            計算速率，把零件從 <span className="text-orange-500 bg-orange-100 px-2 rounded">最慢</span> 排到 <span className="text-red-500 bg-red-100 px-2 rounded">最快</span>！
                         </p>
                     </div>
 
                     {/* 卡片等待區 (Pool) */}
-                    <div className="w-full max-w-5xl min-h-[220px] bg-white/40 rounded-3xl p-6 border-4 border-dashed border-sky-300 mb-8 flex justify-center gap-4 flex-wrap">
+                    <div className={`w-full max-w-5xl min-h-[220px] bg-white/40 rounded-3xl p-6 border-4 border-dashed border-sky-300 mb-8 flex justify-center gap-4 flex-wrap transition-opacity duration-500 ${showSummary ? 'hidden' : 'block'}`}>
                         {pool.length === 0 && gameState !== 'success' && (
                             <div className="text-2xl font-bold text-sky-600/50 flex items-center h-full">零件都拿走囉，趕快組裝測試吧！</div>
                         )}
@@ -314,21 +310,59 @@
                         ))}
                     </div>
 
+                    {/* 總結面板 (車子開走後才顯示) */}
+                    {showSummary && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-40 bg-white/60 backdrop-blur-sm animate-pop-in">
+                            <div className="bg-white border-8 border-yellow-400 rounded-3xl p-10 max-w-3xl text-center shadow-2xl relative overflow-hidden">
+                                {/* 裝飾背景 */}
+                                <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-200 rounded-full opacity-50"></div>
+                                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-200 rounded-full opacity-50"></div>
+                                
+                                <h2 className="text-4xl font-black text-red-600 mb-8 relative z-10">🏆 挑戰成功！重點複習</h2>
+                                
+                                <div className="bg-blue-50 rounded-2xl p-6 mb-6 text-left border-2 border-blue-200 relative z-10">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="bg-blue-500 text-white text-3xl w-12 h-12 flex items-center justify-center rounded-full font-bold">1</div>
+                                        <h3 className="text-3xl font-bold text-blue-800">速率怎麼算？</h3>
+                                    </div>
+                                    <p className="text-3xl font-black text-center text-gray-700 bg-white py-4 rounded-xl shadow-sm border-2 border-dashed border-gray-300">
+                                        速率 ＝ <span className="text-green-600">距離</span> ÷ <span className="text-blue-500">時間</span>
+                                    </p>
+                                </div>
+
+                                <div className="bg-orange-50 rounded-2xl p-6 mb-8 text-left border-2 border-orange-200 relative z-10">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="bg-orange-500 text-white text-3xl w-12 h-12 flex items-center justify-center rounded-full font-bold">2</div>
+                                        <h3 className="text-3xl font-bold text-orange-800">如何判斷快慢？</h3>
+                                    </div>
+                                    <p className="text-2xl font-bold text-gray-700 leading-relaxed text-center">
+                                        算出來的 <span className="text-red-500 text-3xl font-black mx-1">速率越大</span>，<br/>代表車子移動得 <span className="text-red-500 text-3xl font-black mx-1">越快！</span> 💨
+                                    </p>
+                                </div>
+
+                                <button 
+                                    onClick={resetGame}
+                                    className="relative z-10 px-12 py-4 rounded-full text-2xl font-black bg-yellow-400 text-orange-900 shadow-[0_6px_0_#d97706] hover:bg-yellow-300 active:translate-y-2 active:shadow-none transition-all"
+                                >
+                                    🔄 換新題目，再玩一次！
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* 組裝區 (Slots) */}
-                    <div className={`w-full max-w-6xl relative mt-auto mb-16 ${gameState === 'success' ? 'animate-drive' : ''}`}>
+                    <div className={`w-full max-w-6xl relative mt-auto mb-16 ${gameState === 'success' ? 'animate-drive' : ''} ${showSummary ? 'hidden' : 'block'}`}>
                         
-                        {/* 排序標籤 */}
                         <div className="flex justify-between w-full px-8 mb-4">
                             <div className="text-2xl font-black text-orange-600 bg-white px-6 py-2 rounded-2xl shadow-sm border-b-4 border-orange-200">🐢 最慢 (組裝車尾)</div>
                             <div className="text-2xl font-black text-red-600 bg-white px-6 py-2 rounded-2xl shadow-sm border-b-4 border-red-200">最快 (組裝車頭) 🐇</div>
                         </div>
 
-                        {/* 插槽容器 */}
-                        <div className={`flex items-end justify-center w-full px-8 z-10 relative ${gameState === 'error' ? 'animate-shake' : ''} ${gameState === 'success' ? 'gap-0' : 'gap-6'}`}>
+                        <div className={`flex items-end justify-center w-full px-8 z-10 relative max-w-5xl mx-auto ${gameState === 'error' ? 'animate-shake' : ''} ${gameState === 'success' ? 'gap-0' : 'gap-6'}`}>
                             {slots.map((card, idx) => (
                                 <div 
                                     key={`slot-${idx}`} 
-                                    className={`card-transition relative w-1/4 h-48 ${gameState === 'success' ? '' : 'bg-black/10 border-4 border-dashed border-black/20 rounded-2xl'}`}
+                                    className={`card-transition relative w-1/3 h-48 ${gameState === 'success' ? '' : 'bg-black/10 border-4 border-dashed border-black/20 rounded-2xl'}`}
                                     onClick={() => handleSlotClick(idx)}
                                 >
                                     {card ? renderCard(card, 'slot', idx) : (
@@ -337,8 +371,7 @@
                                         </div>
                                     )}
 
-                                    {/* 輪子 (成功時才顯示) */}
-                                    {gameState === 'success' && (idx === 0 || idx === 3) && (
+                                    {gameState === 'success' && (idx === 0 || idx === 2) && (
                                         <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-gray-800 rounded-full border-4 border-gray-300 shadow-xl flex items-center justify-center z-20 wheel-spin">
                                             <div className="w-8 h-8 bg-gray-400 rounded-full border-2 border-gray-600 flex items-center justify-center">
                                                 <div className="w-2 h-2 bg-gray-800 rounded-full"></div>
@@ -349,9 +382,7 @@
                             ))}
                         </div>
 
-                        {/* 馬路 */}
                         <div className="absolute -bottom-6 left-[-50vw] right-[-50vw] h-12 bg-slate-700 -z-10 border-t-8 border-slate-800 overflow-hidden">
-                            {/* 馬路虛線 */}
                             <div className={`w-full h-full ${gameState === 'success' ? 'road-moving' : ''}`} 
                                  style={{ 
                                      backgroundImage: 'linear-gradient(90deg, #fff 50%, transparent 50%)', 
@@ -363,40 +394,30 @@
                         </div>
                     </div>
 
-                    {/* 控制按鈕 */}
-                    <div className="fixed bottom-8 flex gap-6 z-50">
-                        {gameState === 'playing' || gameState === 'error' ? (
-                            <button 
-                                onClick={checkAnswer}
-                                disabled={!allFilled}
-                                className={`px-10 py-4 rounded-full text-2xl font-black shadow-[0_8px_0_rgba(0,0,0,0.2)] transition-all ${
-                                    allFilled 
-                                    ? 'bg-green-500 text-white hover:bg-green-400 hover:-translate-y-1 active:translate-y-2 active:shadow-none' 
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                }`}
-                            >
-                                🚀 啟動測試！
-                            </button>
-                        ) : (
-                            <div className="flex flex-col items-center animate-bounce">
-                                <div className="text-3xl font-black text-green-600 bg-white px-8 py-3 rounded-full border-4 border-green-400 shadow-lg mb-4">
-                                    🎉 成功配對！車子出發囉！ 🎉
-                                </div>
+                    {/* 控制按鈕 (遊戲進行中顯示) */}
+                    {!showSummary && (
+                        <div className="fixed bottom-8 flex gap-6 z-50">
+                            {gameState === 'playing' || gameState === 'error' ? (
                                 <button 
-                                    onClick={resetGame}
-                                    className="px-8 py-3 rounded-full text-xl font-bold bg-yellow-400 text-orange-900 shadow-[0_6px_0_#d97706] hover:bg-yellow-300 active:translate-y-1 active:shadow-none transition-all"
+                                    onClick={checkAnswer}
+                                    disabled={!allFilled}
+                                    className={`px-10 py-4 rounded-full text-2xl font-black shadow-[0_8px_0_rgba(0,0,0,0.2)] transition-all ${
+                                        allFilled 
+                                        ? 'bg-green-500 text-white hover:bg-green-400 hover:-translate-y-1 active:translate-y-2 active:shadow-none' 
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }`}
                                 >
-                                    🔄 再玩一次
+                                    🚀 啟動測試！
                                 </button>
-                            </div>
-                        )}
-                        {/* 如果在遊戲中且排滿了但錯誤，顯示提示 */}
-                        {gameState === 'error' && (
-                            <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-red-500 text-white px-6 py-2 rounded-xl text-xl font-bold shadow-lg animate-bounce">
-                                哎呀！順序怪怪的，有零件裝反了喔！
-                            </div>
-                        )}
-                    </div>
+                            ) : null}
+                            
+                            {gameState === 'error' && (
+                                <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-red-500 text-white px-6 py-2 rounded-xl text-xl font-bold shadow-lg animate-bounce">
+                                    哎呀！順序怪怪的，有零件裝反了喔！
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -406,4 +427,5 @@
     </script>
 </body>
 </html>
+
 
